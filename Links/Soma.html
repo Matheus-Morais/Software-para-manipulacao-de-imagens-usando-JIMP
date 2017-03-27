@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Laboratório JIMP</title>
+    <script src="https://cdn.rawgit.com/oliver-moran/jimp/v0.2.27/browser/lib/jimp.min.js"></script>
+    <script type="text/javascript">
+	var cont = 0;
+	var imagem_limiar = new Array();
+	
+	function mostrarImagem(elemento){
+		var arquivo = elemento.files[0];
+		var reader = new FileReader();
+		reader.readAsArrayBuffer(arquivo);
+		reader.addEventListener('load', function(){
+			Jimp.read(this.result)
+			.then(function(imagem){
+			  imagem = imagem.resize(470,350);
+			  imagem_limiar.push(imagem);
+			  exibirImagem(imagem);
+			})
+			.catch(function(erro){
+			  console.log('Não foi possível processar os dados da imagem.');
+			  console.log(erro);
+			});
+		});
+	}
+	
+	function exibirImagem(imagem) {
+	imagem.getBase64(Jimp.MIME_JPEG, function(err, src){
+		var img = document.createElement("img");
+		img.setAttribute("src", src);
+		document.body.appendChild(img);
+	  });
+	}
+	  
+	function aplicarThreshold(elemento) {
+		var t = parseInt(elemento.value);
+		var w = imagem_limiar[0].bitmap.width;
+		var h = imagem_limiar[0].bitmap.height;
+		var imagem1 = imagem_limiar[0].clone();
+		var imagem2 = imagem_limiar[1].clone();
+                var aux = imagem1;
+		var maiorR = -600;
+		var maiorG = -600;
+		var maiorB = -600;
+		var menorR = 600;
+		var menorG = 600;
+		var menorB = 600;
+		
+		for(var i = 0; i < w; i++) {
+			for(var j = 0; j < h; j++) {
+				var cor1 = imagem1.getPixelColor(i,j);
+				var cor2 = imagem2.getPixelColor(i,j);
+				var rgba1 = Jimp.intToRGBA(cor1);
+				var rgba2 = Jimp.intToRGBA(cor2);
+                                
+                                if((rgba1.r + rgba2.r) > maiorR){
+                                    maiorR = rgba1.r + rgba2.r;
+                                }
+				else if((rgba1.g + rgba2.g) > maiorG){
+                                    maiorG = rgba1.g + rgba2.g;
+                                }
+                                else if((rgba1.b + rgba2.b) > maiorB){
+                                    maiorB = rgba1.b + rgba2.b;
+                                }
+                                else if((rgba1.r + rgba2.r) < menorR){
+                                    menorR = rgba1.r + rgba2.r;
+                                }
+				else if((rgba1.g + rgba2.g) < menorG){
+                                    menorG = rgba1.g + rgba2.g;
+                                }
+                                else if((rgba1.b + rgba2.b) < menorB){
+                                    menorB = rgba1.b + rgba2.b;
+                                }                               
+			}
+		}
+
+		for(var i = 0; i < w; i++) {
+			for(var j = 0; j < h; j++) {
+                            var cor1 = imagem1.getPixelColor(i,j);
+                            var cor2 = imagem2.getPixelColor(i,j);
+                            var rgba1 = Jimp.intToRGBA(cor1);
+                            var rgba2 = Jimp.intToRGBA(cor2);
+                            
+                            var r = escalonamento(rgba1.r + rgba2.r, maiorR, menorR);
+                            var g = escalonamento(rgba1.g + rgba2.g, maiorG, menorG);
+                            var b = escalonamento(rgba1.b + rgba2.b, maiorB, menorB);                         
+                            
+                            var hex = Jimp.rgbaToInt(r, g, b, rgba1.a);
+                            aux.setPixelColor(hex, i, j);
+			}
+		}
+		exibirImagemFinal(aux);
+	}
+	
+	function escalonamento(pixel, Tmax, Tmin){
+		var x = Math.floor((255/(Tmax-Tmin))*(pixel-Tmin));
+                if(x > 255){
+                    x = 255;
+                }
+                else if (x < 0){
+                    x = 0;
+                }
+		return x;
+	}
+	function exibirImagemFinal(imagem) {
+        imagem.getBase64(Jimp.MIME_JPEG, function(err, src){
+            var img = document.getElementById('display');
+            img.setAttribute('src', src);
+        });
+    }
+	</script>
+	</head>
+	<body>
+	<div style="float:left">
+		<p>Escolha um arquivo de imagem A</p>
+		<input type="file" onchange="mostrarImagem(this)">
+		<br>
+	</div>
+	
+	<div style="display:inline-block;margin-left:17%">
+		<p>Escolha um valor para o Soma</p>
+		<input type="number" id="valor-threshold" value="205" onchange="aplicarThreshold(this)">
+		<br>
+		<img id="display">
+	</div>
+	
+	<div style="float:right">
+		<p>Escolha um arquivo de imagem B</p>
+		<input type="file" onchange="mostrarImagem(this)">
+		<br>
+	</div>
+	<br><br>
+	
+	</body>
+</html>

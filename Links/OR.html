@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Laboratório JIMP OR</title>
+    <script src="https://cdn.rawgit.com/oliver-moran/jimp/v0.2.27/browser/lib/jimp.min.js"></script>
+    <script type="text/javascript">
+	var cont = 0;
+	var imagem_limiar = new Array();
+	
+	function mostrarImagem(elemento){
+		var arquivo = elemento.files[0];
+		var reader = new FileReader();
+		reader.readAsArrayBuffer(arquivo);
+		reader.addEventListener('load', function(){
+			Jimp.read(this.result)
+			.then(function(imagem){
+			  imagem = imagem.resize(470,350);
+			  imagem_limiar.push(imagem);
+			  exibirImagem(imagem);
+			})
+			.catch(function(erro){
+			  console.log('Não foi possível processar os dados da imagem.');
+			  console.log(erro);
+			});
+		});
+	}
+	
+	function exibirImagem(imagem) {
+	imagem.getBase64(Jimp.MIME_JPEG, function(err, src){
+		var img = document.createElement("img");
+		img.setAttribute("src", src);
+		document.body.appendChild(img);
+	  });
+	}
+	  
+	function aplicarThreshold(elemento) {
+		var t = parseInt(elemento.value);
+		var w = imagem_limiar[0].bitmap.width;
+		var h = imagem_limiar[0].bitmap.height;
+		var imagem1 = imagem_limiar[0].clone();
+		var imagem2 = imagem_limiar[1].clone();
+                var aux = imagem1;
+
+		for(var i = 0; i < w; i++) {
+			for(var j = 0; j < h; j++) {
+				var cor1 = imagem1.getPixelColor(i,j);
+				var cor2 = imagem2.getPixelColor(i,j);
+				var rgba1 = Jimp.intToRGBA(cor1);
+				var rgba2 = Jimp.intToRGBA(cor2);
+				if(rgba1.r == 255 || rgba2.r == 0){
+					var r = 100;
+				}
+                                else{
+                                    r = 0;
+                                }
+                                if(rgba1.g == 255 || rgba2.g == 0){
+					var g = 255;
+				}
+                                else{
+                                    g = 0;
+                                }
+                                if(rgba1.b == 255 || rgba2.b == 0){
+					var b = 255;
+				}
+                                else{
+                                    b = 0;
+                                }
+                                var hex = Jimp.rgbaToInt(r, g, b, rgba1.a);
+                                aux.setPixelColor(hex, i, j);
+			}
+		}
+		
+		exibirImagemFinal(imagem1);
+	}
+
+	function exibirImagemFinal(imagem) {
+        imagem.getBase64(Jimp.MIME_JPEG, function(err, src){
+            var img = document.getElementById('display');
+            img.setAttribute('src', src);
+        });
+    }
+	</script>
+	</head>
+	<body>
+	<div style="float:left">
+		<p>Escolha um arquivo de imagem A</p>
+		<input type="file" onchange="mostrarImagem(this)">
+		<br>
+	</div>
+	
+	<div style="display:inline-block;margin-left:17%">
+		<p>Clique na seta do numero para realizar a operação OR</p>
+		<input type="number" id="valor-threshold" value="205" onchange="aplicarThreshold(this)">
+		<br>
+		<img id="display">
+	</div>
+	
+	<div style="float:right">
+		<p>Escolha um arquivo de imagem B</p>
+		<input type="file" onchange="mostrarImagem(this)">
+		<br>
+	</div>
+	<br><br>
+	
+	</body>
+</html>
