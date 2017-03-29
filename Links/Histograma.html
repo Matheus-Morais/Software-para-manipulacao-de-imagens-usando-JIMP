@@ -15,7 +15,7 @@
             reader.addEventListener('load', function(){
                 Jimp.read(this.result)
                     .then(function(imagem){
-                        imagem = imagem.resize(120, 100);
+                        imagem = imagem.resize(420, 400);
                         imagem_atual = imagem;
                         exibirImagem(imagem);
                     })
@@ -85,6 +85,10 @@
             vetorRn = [];
             vetorGn = [];
             vetorBn = [];
+            vetorRa = [];
+            vetorGa = [];
+            vetorBa = [];
+            
             for(var i =0; i< 256; i++){
                 vetorR.push(0);
                 vetorG.push(0);
@@ -92,6 +96,9 @@
                 vetorRn.push(0);
                 vetorGn.push(0);
                 vetorBn.push(0);
+                vetorRa.push(0);
+                vetorGa.push(0);
+                vetorBa.push(0);
             }
 
             for(var i = 0; i < w; i++) {//histograma 
@@ -105,42 +112,39 @@
                 }
             }
             
-            for(var i = 0; i < w; i++) {//histograma normalizado
-                for(var j = 0; j < h; j++) {
-                    var cor = imagem.getPixelColor(i, j);
-                    var rgba = Jimp.intToRGBA(cor);
-                    
-                    vetorRn[rgba.r] += Math.floor(vetorR[rgba.r] /12000);
-                    vetorGn[rgba.g] += Math.floor(vetorR[rgba.g] /12000);
-                    vetorBn[rgba.b] += Math.floor(vetorR[rgba.b] /12000);               
-                }
+            for(var i = 0; i < 256; i++) {//histograma normalizado                    
+                vetorRn[i] = vetorR[i] / 168000;
+                vetorGn[i] = vetorG[i] / 168000;
+                vetorBn[i] = vetorB[i] / 168000;               
             }
-            for(var i = 0; i < w; i++) {//Histograma acumulado normalizado
-                for(var j = 0; j < h; j++) {
-                    var cor = imagem.getPixelColor(i, j);
-                    var rgba = Jimp.intToRGBA(cor);
-                    if(j == 0){
-                        vetorR[rgba.r] = vetorRn[rgba.r];
-                        vetorG[rgba.g] = vetorGn[rgba.g];
-                        vetorB[rgba.b] = vetorBn[rgba.b];
-                    }
-                    else{
-                        var cor2 = imagem.getPixelColor(i, j-1);
-                        var rgba2 = Jimp.intToRGBA(cor2);
-                        vetorR[rgba.r] += vetorRn[rgba.r] + vetorRn[rgba2.r];
-                        vetorG[rgba.g] += vetorGn[rgba.g] + vetorGn[rgba2.g];
-                        vetorB[rgba.b] += vetorBn[rgba.b] + vetorBn[rgba2.b];
-                    }               
+
+            for( var i = 0; i < 256;i++)//histograma normalizado acumulado
+            {
+                if( i == 0 ){
+                    vetorRa[i] = vetorRn[i];
+                    vetorGa[i] = vetorGn[i];
+                    vetorBa[i] = vetorBn[i];
                 }
+                else{
+                    for(var cont=i; cont>0; cont=cont-1)
+                    {
+                        vetorRa[i] = vetorRa[i] + vetorRn[cont];
+                        vetorGa[i] = vetorGa[i] + vetorGn[cont];
+                        vetorBa[i] = vetorBa[i] + vetorBn[cont];
+                    }
+                }
+                console.log(vetorRa[i]);
+                
+                
             }
             for(var i = 0; i < w; i++) { //equalização de histograma
                 for(var j = 0; j < h; j++) {
                     var cor = imagem.getPixelColor(i, j);
                     var rgba = Jimp.intToRGBA(cor);
-                    var r = verifica(vetorR[rgba.r]);
-                    var g = verifica(vetorR[rgba.g]);
-                    var b = verifica(vetorR[rgba.b]);
-                    
+                    var r = Math.floor(vetorRa[rgba.r]*255);
+                    var g = Math.floor(vetorGa[rgba.g]*255);
+                    var b = Math.floor(vetorBa[rgba.b]*255);
+                                        
                     var hex = Jimp.rgbaToInt(r, g, b, rgba.a);
                     imagem.setPixelColor(hex, i, j);
                 }
@@ -148,6 +152,7 @@
             exibirImagem(imagem);
             google.charts.load('current', {'packages':['corechart']});
             google.charts.setOnLoadCallback(drawChart2);
+            
         }            
 
         function verifica(valor){
@@ -182,7 +187,7 @@
             var aux=[];
             aux.push( ['Histograma','R', 'G', 'B']);
             for(var i =0; i< 256; i++){
-               aux.push([i,vetorR[i],vetorG[i],vetorB[i]]);
+               aux.push([i,vetorRa[i],vetorGa[i],vetorBa[i]]);
             }
             var data = google.visualization.arrayToDataTable(aux);
 
